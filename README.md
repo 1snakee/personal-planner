@@ -1,73 +1,70 @@
-# React + TypeScript + Vite
+# Minimalist Life Dashboard & Second Brain 🧠
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+![Minimalist Design](https://img.shields.io/badge/Design-Minimalist_Studio-1A1A1A?style=flat-square)
+![Offline First](https://img.shields.io/badge/Architecture-Offline_First-10B981?style=flat-square)
+![React](https://img.shields.io/badge/Frontend-React_18-61DAFB?style=flat-square)
+![TailwindCSS](https://img.shields.io/badge/Styling-TailwindCSS-38B2AC?style=flat-square)
+![Zustand](https://img.shields.io/badge/State-Zustand-orange?style=flat-square)
 
-Currently, two official plugins are available:
+Ein extrem sauberes, lokales und offline-fähiges Life-Management-System (PWA) für das iPhone und den Desktop. Es vereint ein intelligentes "Second Brain" für Notizen, einen Workout-Tracker (Gym) und einen minimalistischen Finanz-Manager in einer nahtlosen, wunderschönen Applikation.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## ✨ Features
 
-## React Compiler
+### 1. Second Brain (Notizen & KI)
+* **Offline First**: Alle Notizen werden lokal auf deinem Gerät gespeichert (LocalStorage).
+* **KI-Integration**: Trage deinen OpenAI API-Key in den Einstellungen ein. Das System generiert lautlos im Hintergrund Zusammenfassungen, analysiert deinen Mood-Score und verknüpft verwandte Ideen.
+* **Organisches Netzwerk**: Die *Insights*-Ansicht baut aus deinen Notizen dynamisch einen interaktiven, visuellen Graphen (Wolke) auf.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 2. Gym Tracker
+* **Zero Friction**: Trage dein Körpergewicht und Workout mit zwei Klicks ein.
+* **Condition Pics**: Nimm Fotos direkt in der App auf (werden als Base64 lokal im Storage persistiert – keine Cloud nötig!).
+* **Consistency Check**: Behalte deine monatlichen Trainings-Sessions in einer cleanen Listenansicht im Blick.
 
-## Expanding the ESLint configuration
+### 3. Finanz Manager
+* **Zero-Based Budgeting**: Verteile jeden Euro deines Einkommens auf Sparziele. Kein Restbetrag bleibt ungenutzt.
+* **Master-Export**: Ein Klick und die App generiert eine `.zip`-Datei mit allen Tabellen als `.csv` sowie deinen Gym-Fotos als JPGs. Volle Datenkontrolle!
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### 4. Cross-Data Intelligence (Insights)
+Die App analysiert domänenübergreifend Zusammenhänge:
+* Korreliert deine Trainings-Konsistenz mit deiner Sparrate?
+* Steigt dein mentaler *Mood-Score* an Tagen mit Gym-Sessions?
+Das Dashboard generiert aus diesen Datenpunkten automatisch Motivation und Insights.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## 🚀 Installation & Setup
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+Da das System zu 100 % im Browser läuft (Client-Side), gibt es keine komplizierten Datenbank-Setups oder Backends. 
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+1. **Repository klonen**
+   ```bash
+   git clone https://github.com/dein-username/personal-planner.git
+   cd personal-planner
+   ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+2. **Abhängigkeiten installieren**
+   ```bash
+   npm install
+   ```
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+3. **Entwicklungsserver starten**
+   ```bash
+   npm run dev
+   ```
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+4. *(Optional)* **Als PWA auf dem iPhone installieren**
+   Öffne die lokale Netzwerk-URL (z.B. `http://192.168.x.x:5173`) in Safari, tippe auf "Teilen" und wähle **"Zum Home-Bildschirm hinzufügen"**. Die App läuft sofort Fullscreen ohne Browser-Leisten.
+
+## 🔐 Sicherheit & Privatsphäre
+**Dein Leben, deine Daten.**
+* Keine Datenbank in der Cloud. Kein Tracking.
+* Alles wird via `zustand/persist` im LocalStorage deines Browsers gespeichert.
+* Der (optionale) OpenAI API-Key wird nicht im Code hardcodiert, sondern direkt in der App eingetippt und nur lokal gespeichert.
+
+## 🎨 Design-Philosophie
+Gebaut nach dem **"Minimalist Studio"** Ansatz:
+- Monochromatisch (Reines Weiß / Tiefschwarz)
+- Warmgraue Nuancen (`#F9F9FB`, `#F3F4F6`)
+- Subtile Akzente (z.B. Gold `#D4BA6A` für KI-Elemente)
+- Keine Neon-Farben, maximaler Fokus durch viel Whitespace (Padding).
+
+---
+*Built with ❤️ for a focused life.*
