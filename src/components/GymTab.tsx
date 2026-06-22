@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Save, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Camera, Calendar, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { useStore } from '../store';
 import type { GymSession } from '../store';
 
@@ -164,13 +164,50 @@ export const GymTab: React.FC = () => {
   }, [currentDate, gymSessions, trackerState]);
 
   const updateActiveState = (updates: Partial<DailyState>) => {
-    setTrackerState(prev => ({
-      ...prev,
-      [currentDate]: {
+    setTrackerState(prev => {
+      const stateForDate = {
         ...(prev[currentDate] || { splitId: SPLITS[0].id, bodyWeight: '', imagePreview: null, workoutData: {} }),
         ...updates
-      }
-    }));
+      };
+      
+      // Auto-save logic
+      setTimeout(() => {
+        const split = SPLITS.find(s => s.id === stateForDate.splitId);
+        if (split) {
+          const sessionToSave: GymSession = {
+            id: currentDate,
+            date: currentDate,
+            duration: 0,
+            workout_type: stateForDate.splitId,
+            body_weight: stateForDate.bodyWeight ? Number(stateForDate.bodyWeight) : null,
+            condition_pic_url: stateForDate.imagePreview || '',
+            exercise_data: split.exercises.map((ex, exIdx) => {
+              const setsData = [];
+              for (let setIdx = 0; setIdx < ex.sets; setIdx++) {
+                 const s = stateForDate.workoutData[exIdx]?.[setIdx];
+                 setsData.push({ reps: Number(s?.reps || 0), weight: Number(s?.weight || 0) });
+              }
+              return {
+                id: exIdx.toString(),
+                name: ex.name,
+                sets: setsData
+              };
+            })
+          };
+          const store = useStore.getState();
+          if (store.gym_sessions.some(s => s.date === currentDate)) {
+             store.updateGymSession(currentDate, sessionToSave);
+          } else {
+             store.addGymSession(sessionToSave);
+          }
+        }
+      }, 0);
+
+      return {
+        ...prev,
+        [currentDate]: stateForDate
+      };
+    });
   };
 
   const handleImageCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -193,37 +230,6 @@ export const GymTab: React.FC = () => {
     
     newWorkoutData[exerciseIdx][setIdx][field] = value;
     updateActiveState({ workoutData: newWorkoutData });
-  };
-
-  const handleSave = () => {
-    const currentSplit = SPLITS.find(s => s.id === activeState.splitId)!;
-    const sessionToSave: GymSession = {
-      id: currentDate,
-      date: currentDate,
-      duration: 0,
-      workout_type: activeState.splitId,
-      body_weight: activeState.bodyWeight ? Number(activeState.bodyWeight) : null,
-      condition_pic_url: activeState.imagePreview || '',
-      exercise_data: currentSplit.exercises.map((ex, exIdx) => {
-        const setsData = [];
-        for (let setIdx = 0; setIdx < ex.sets; setIdx++) {
-           const s = activeState.workoutData[exIdx]?.[setIdx];
-           setsData.push({ reps: Number(s?.reps || 0), weight: Number(s?.weight || 0) });
-        }
-        return {
-          id: exIdx.toString(),
-          name: ex.name,
-          sets: setsData
-        };
-      })
-    };
-    
-    if (gymSessions.some(s => s.date === currentDate)) {
-       updateGymSession(currentDate, sessionToSave);
-    } else {
-       addGymSession(sessionToSave);
-    }
-    alert("Workout gespeichert!");
   };
 
   const currentSplit = SPLITS.find(s => s.id === activeState.splitId)!;
@@ -272,7 +278,17 @@ export const GymTab: React.FC = () => {
                   <Camera size={24} className="text-[#6B7280]" />
                 )}
               </button>
-              <span className="text-[10px] font-medium text-[#6B7280] text-center leading-tight">Condition<br/>Check</span>
+              {activeState.imagePreview ? (
+                <button 
+                  onClick={() => updateActiveState({ imagePreview: null })}
+                  className="flex items-center space-x-1 px-2 py-1 bg-red-50 dark:bg-red-500/10 text-red-500 rounded-lg active:scale-95 transition-transform"
+                >
+                  <Trash2 size={12} />
+                  <span className="text-[10px] font-bold">Löschen</span>
+                </button>
+              ) : (
+                <span className="text-[10px] font-medium text-[#6B7280] text-center leading-tight">Condition<br/>Check</span>
+              )}
               <input 
                 type="file" 
                 accept="image/*" 
@@ -351,10 +367,6 @@ export const GymTab: React.FC = () => {
                   const savedWeight = activeState.workoutData[exIdx]?.[setIdx]?.weight || '';
                   const savedReps = activeState.workoutData[exIdx]?.[setIdx]?.reps || '';
                   
-                  // Per-set placeholders
-                  const placeholderWeight = exercise.placeholders[setIdx]?.weight || 'kg';
-                  const placeholderReps = exercise.placeholders[setIdx]?.reps || 'reps';
-
                   return (
                     <div key={setIdx} className="flex items-center space-x-3">
                       <span className="w-6 text-sm font-bold text-[#1A1A1A] dark:text-[#F3F4F6] text-center">{setIdx + 1}</span>
@@ -365,7 +377,7 @@ export const GymTab: React.FC = () => {
                           inputMode="decimal"
                           value={savedWeight}
                           onChange={(e) => handleInputChange(exIdx, setIdx, 'weight', e.target.value)}
-                          placeholder={placeholderWeight}
+                          placeholder="kg"
                           className="flex-1 w-full bg-[#F9F9FB] dark:bg-[#1A1A1A] border border-gray-200 dark:border-[#2D3748] text-[#1A1A1A] dark:text-[#F3F4F6] text-center rounded-xl px-2 py-2 focus:outline-none focus:border-[#8FA496] transition-colors placeholder-[#A0AEC0] dark:placeholder-[#4A5568]"
                           style={{ fontSize: '16px', minHeight: '44px' }}
                         />
@@ -376,7 +388,7 @@ export const GymTab: React.FC = () => {
                         inputMode="numeric"
                         value={savedReps}
                         onChange={(e) => handleInputChange(exIdx, setIdx, 'reps', e.target.value)}
-                        placeholder={placeholderReps}
+                        placeholder="reps"
                         className="flex-1 w-full bg-[#F9F9FB] dark:bg-[#1A1A1A] border border-gray-200 dark:border-[#2D3748] text-[#1A1A1A] dark:text-[#F3F4F6] text-center rounded-xl px-2 py-2 focus:outline-none focus:border-[#8FA496] transition-colors placeholder-[#A0AEC0] dark:placeholder-[#4A5568]"
                         style={{ fontSize: '16px', minHeight: '44px' }}
                       />
@@ -386,14 +398,6 @@ export const GymTab: React.FC = () => {
               </div>
             </div>
           ))}
-
-          {/* 4. Architecture & Saving */}
-          <div className="pt-4">
-            <button onClick={handleSave} className="w-full flex items-center justify-center space-x-2 bg-[#1A1A1A] dark:bg-white text-white dark:text-[#121212] font-semibold rounded-2xl active:scale-95 transition-transform" style={{ minHeight: '52px', fontSize: '16px' }}>
-              <Save size={20} />
-              <span>Save Workout Session</span>
-            </button>
-          </div>
         </div>
 
       </div>
@@ -440,6 +444,7 @@ export const GymTab: React.FC = () => {
                 const todayStr = new Date().toISOString().split('T')[0];
                 const thisDayStr = `${viewDate.getFullYear()}-${String(viewDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 const isToday = todayStr === thisDayStr;
+                const hasWorkout = gymSessions.some(s => s.date === thisDayStr && s.exercise_data.some(ex => ex.sets.some(set => set.reps > 0 || set.weight > 0)));
 
                 return (
                   <button
@@ -448,12 +453,14 @@ export const GymTab: React.FC = () => {
                     className={`h-10 w-10 flex items-center justify-center rounded-full text-sm font-medium transition-all mx-auto relative ${
                       isSelected
                         ? 'bg-[#1A1A1A] dark:bg-white text-white dark:text-[#121212] shadow-md scale-105'
-                        : 'text-[#1A1A1A] dark:text-[#F3F4F6] hover:bg-[#F9F9FB] dark:hover:bg-[#2D3748]'
+                        : hasWorkout
+                          ? 'border-[2.5px] border-accent-sage text-[#1A1A1A] dark:text-[#F3F4F6] hover:bg-[#F9F9FB] dark:hover:bg-[#2D3748]'
+                          : 'text-[#1A1A1A] dark:text-[#F3F4F6] hover:bg-[#F9F9FB] dark:hover:bg-[#2D3748]'
                     }`}
                   >
                     {day}
-                    {!isSelected && isToday && (
-                      <span className="absolute bottom-1 w-1 h-1 rounded-full bg-accent-sage"></span>
+                    {!isSelected && isToday && !hasWorkout && (
+                      <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-accent-sage"></span>
                     )}
                   </button>
                 );

@@ -43,7 +43,7 @@ function App() {
       </div>
 
       {/* Floating Glassmorphism Bottom-Bar */}
-      <div className="absolute bottom-0 left-0 right-0 w-full px-4 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pointer-events-none flex justify-center" style={{ zIndex: 50 }}>
+      <div className="absolute bottom-0 left-0 right-0 w-full px-4 pb-4 pointer-events-none flex justify-center" style={{ zIndex: 50 }}>
         <nav className="w-full max-w-md bg-white/70 dark:bg-[#121212]/70 backdrop-blur-md border border-gray-200/50 dark:border-[#2D3748]/50 rounded-2xl p-2 pointer-events-auto shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
           <div className="grid grid-cols-4 w-full h-14 relative">
             
