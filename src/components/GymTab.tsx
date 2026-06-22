@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Save, Calendar, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Camera, Save, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useStore } from '../store';
 import type { GymSession } from '../store';
 
@@ -84,7 +84,7 @@ export const GymTab: React.FC = () => {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [viewDate, setViewDate] = useState(() => {
-    const [y, m, d] = currentDate.split('-');
+    const [y, m] = currentDate.split('-');
     return new Date(Number(y), Number(m) - 1, 1);
   });
 

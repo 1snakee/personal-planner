@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Plus, Trash2, ChevronDown, Clock, X, ChevronLeft, Calendar, ChevronRight, Pencil, DownloadCloud } from 'lucide-react';
 import JSZip from 'jszip';
 import { useStore } from '../store';
-import type { FinanceBudgetMonth, SavingsGoalGlobal, FixedCost, Envelope, DistributedSaving } from '../store';
+import type { FinanceBudgetMonth, Envelope } from '../store';
 
 // Circular Progress SVG Component
 const CircularProgress = ({ current, target, size = 64 }: { current: number; target: number; size?: number }) => {
