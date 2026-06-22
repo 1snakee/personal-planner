@@ -71,8 +71,6 @@ type DailyState = {
 
 export const GymTab: React.FC = () => {
   const gymSessions = useStore(state => state.gym_sessions);
-  const addGymSession = useStore(state => state.addGymSession);
-  const updateGymSession = useStore(state => state.updateGymSession);
 
   // Initialize to today's local date
   const [currentDate, setCurrentDate] = useState(() => {
