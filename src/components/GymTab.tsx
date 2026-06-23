@@ -402,7 +402,7 @@ export const GymTab: React.FC = () => {
                       const savedReps = savedSets[setIdx]?.reps || '';
                       
                       return (
-                        <div key={setIdx} className="flex items-center space-x-3">
+                        <div key={setIdx} className="flex items-center space-x-3 animate-fade-in-subtle">
                           <span className="w-6 text-sm font-bold text-[#1A1A1A] dark:text-[#F3F4F6] text-center">{setIdx + 1}</span>
                           
                           {exercise.hasWeight && (
