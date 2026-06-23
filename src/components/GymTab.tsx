@@ -31,7 +31,7 @@ type DailyState = {
   splitId: string;
   bodyWeight: string;
   imagePreview: string | null;
-  workoutData: { [exerciseIdx: number]: { [setIdx: number]: { weight: string; reps: string } } };
+  workoutData: Record<string, { [setIdx: number]: { weight: string; reps: string } }>;
 };
 
 export const GymTab: React.FC = () => {
@@ -113,14 +113,15 @@ export const GymTab: React.FC = () => {
       const existing = gymSessions.find(s => s.date === currentDate);
       if (existing) {
         const workoutData: any = {};
-        existing.exercise_data.forEach((ex, exIdx) => {
-          workoutData[exIdx] = {};
+        existing.exercise_data.forEach((ex) => {
+          const key = ex.id || ex.name;
+          workoutData[key] = {};
           ex.sets.forEach((set, setIdx) => {
-            workoutData[exIdx][setIdx] = { weight: set.weight ? set.weight.toString() : '', reps: set.reps ? set.reps.toString() : '' };
+            workoutData[key][setIdx] = { weight: set.weight ? set.weight.toString() : '', reps: set.reps ? set.reps.toString() : '' };
           });
           // Ensure at least 1 set exists if the exercise was logged but empty
-          if (Object.keys(workoutData[exIdx]).length === 0) {
-            workoutData[exIdx][0] = { weight: '', reps: '' };
+          if (Object.keys(workoutData[key]).length === 0) {
+            workoutData[key][0] = { weight: '', reps: '' };
           }
         });
 
@@ -138,8 +139,9 @@ export const GymTab: React.FC = () => {
         const split = gymSplits.find(s => s.id === defaultSplitId);
         const workoutData: any = {};
         if (split) {
-          split.exercises.forEach((_, exIdx) => {
-            workoutData[exIdx] = { 0: { weight: '', reps: '' } };
+          split.exercises.forEach((ex) => {
+            const key = ex.id || ex.name;
+            workoutData[key] = { 0: { weight: '', reps: '' } };
           });
         }
         setTrackerState(prev => ({
@@ -174,9 +176,10 @@ export const GymTab: React.FC = () => {
         workout_type: newState.splitId,
         body_weight: newState.bodyWeight ? Number(newState.bodyWeight) : null,
         condition_pic_url: newState.imagePreview || '',
-        exercise_data: split.exercises.map((ex, exIdx) => {
+        exercise_data: split.exercises.map((ex) => {
+          const key = ex.id || ex.name;
           const setsData = [];
-          const savedExData = newState.workoutData[exIdx] || {};
+          const savedExData = newState.workoutData[key] || {};
           const numSets = Math.max(1, Object.keys(savedExData).length);
           
           for (let setIdx = 0; setIdx < numSets; setIdx++) {
@@ -212,29 +215,32 @@ export const GymTab: React.FC = () => {
     }
   };
 
-  const handleInputChange = (exerciseIdx: number, setIdx: number, field: 'weight'|'reps', value: string) => {
+  const handleInputChange = (exerciseKey: string, setIdx: number, field: 'weight'|'reps', value: string) => {
     const newWorkoutData = { ...activeState.workoutData };
-    if (!newWorkoutData[exerciseIdx]) newWorkoutData[exerciseIdx] = {};
-    if (!newWorkoutData[exerciseIdx][setIdx]) newWorkoutData[exerciseIdx][setIdx] = { weight: '', reps: '' };
+    if (!newWorkoutData[exerciseKey]) newWorkoutData[exerciseKey] = {};
+    if (!newWorkoutData[exerciseKey][setIdx]) newWorkoutData[exerciseKey][setIdx] = { weight: '', reps: '' };
     
-    newWorkoutData[exerciseIdx][setIdx][field] = value;
+    newWorkoutData[exerciseKey][setIdx][field] = value;
     updateActiveState({ workoutData: newWorkoutData });
   };
 
-  const handleAddSet = (exIdx: number) => {
+  const handleAddSet = (exerciseKey: string) => {
     const newWorkoutData = { ...activeState.workoutData };
-    if (!newWorkoutData[exIdx]) newWorkoutData[exIdx] = { 0: { weight: '', reps: '' } };
-    const nextSetIdx = Object.keys(newWorkoutData[exIdx]).length;
-    newWorkoutData[exIdx][nextSetIdx] = { weight: '', reps: '' };
+    if (!newWorkoutData[exerciseKey]) newWorkoutData[exerciseKey] = { 0: { weight: '', reps: '' } };
+    const nextSetIdx = Object.keys(newWorkoutData[exerciseKey]).length;
+    newWorkoutData[exerciseKey][nextSetIdx] = { weight: '', reps: '' };
     updateActiveState({ workoutData: newWorkoutData });
   };
 
   const handleSplitChange = (newSplitId: string) => {
     const split = gymSplits.find(s => s.id === newSplitId);
-    const workoutData: any = {};
+    const workoutData = { ...activeState.workoutData };
     if (split) {
-      split.exercises.forEach((_, exIdx) => {
-        workoutData[exIdx] = { 0: { weight: '', reps: '' } };
+      split.exercises.forEach((ex) => {
+        const key = ex.id || ex.name;
+        if (!workoutData[key]) {
+          workoutData[key] = { 0: { weight: '', reps: '' } };
+        }
       });
     }
     updateActiveState({ splitId: newSplitId, workoutData });
@@ -363,7 +369,8 @@ export const GymTab: React.FC = () => {
         {currentSplit && (
           <div className="p-6 space-y-6">
             {currentSplit.exercises.map((exercise, exIdx) => {
-              const savedSets = activeState.workoutData[exIdx] || { 0: { weight: '', reps: '' } };
+              const exKey = exercise.id || exercise.name;
+              const savedSets = activeState.workoutData[exKey] || { 0: { weight: '', reps: '' } };
               const setKeys = Object.keys(savedSets).map(Number);
               const numSets = setKeys.length;
 
@@ -404,7 +411,7 @@ export const GymTab: React.FC = () => {
                               type="number" 
                               inputMode="decimal"
                               value={savedWeight}
-                              onChange={(e) => handleInputChange(exIdx, setIdx, 'weight', e.target.value)}
+                              onChange={(e) => handleInputChange(exKey, setIdx, 'weight', e.target.value)}
                               placeholder="kg"
                               className="flex-1 w-full bg-[#F9F9FB] dark:bg-[#1A1A1A] border border-gray-200 dark:border-[#2D3748] text-[#1A1A1A] dark:text-[#F3F4F6] text-center rounded-xl px-2 py-2 focus:outline-none focus:border-[#8FA496] transition-colors placeholder-[#A0AEC0] dark:placeholder-[#4A5568]"
                               style={{ fontSize: '16px', minHeight: '44px' }}
@@ -415,7 +422,7 @@ export const GymTab: React.FC = () => {
                             type="number" 
                             inputMode="numeric"
                             value={savedReps}
-                            onChange={(e) => handleInputChange(exIdx, setIdx, 'reps', e.target.value)}
+                            onChange={(e) => handleInputChange(exKey, setIdx, 'reps', e.target.value)}
                             placeholder="reps"
                             className="flex-1 w-full bg-[#F9F9FB] dark:bg-[#1A1A1A] border border-gray-200 dark:border-[#2D3748] text-[#1A1A1A] dark:text-[#F3F4F6] text-center rounded-xl px-2 py-2 focus:outline-none focus:border-[#8FA496] transition-colors placeholder-[#A0AEC0] dark:placeholder-[#4A5568]"
                             style={{ fontSize: '16px', minHeight: '44px' }}
@@ -425,7 +432,7 @@ export const GymTab: React.FC = () => {
                     })}
 
                     <button 
-                      onClick={() => handleAddSet(exIdx)}
+                      onClick={() => handleAddSet(exKey)}
                       className="w-full mt-2 py-3 flex items-center justify-center space-x-2 rounded-xl border border-dashed border-gray-300 dark:border-[#4A5568] text-[#6B7280] font-medium text-sm hover:bg-[#F9F9FB] dark:hover:bg-[#1A1A1A] transition-colors active:scale-95"
                     >
                       <Plus size={16} />
