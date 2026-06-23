@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, Clock, Plus, Trash2, Sparkles, X } from 'lucide-react';
+import { ChevronLeft, Clock, Plus, Trash2, Sparkles, X, BookOpen, Lightbulb } from 'lucide-react';
 
 import { useStore } from '../store';
 import type { DailyNote } from '../store';
@@ -11,6 +11,7 @@ export const NotesTab: React.FC = () => {
   const updateNote = useStore(state => state.updateNote);
   const deleteNoteFromStore = useStore(state => state.deleteNote);
 
+  const [activeFilter, setActiveFilter] = useState<'Alle' | 'Tagebuch' | 'Idee'>('Alle');
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
   
   const [swipedNoteId, setSwipedNoteId] = useState<string | null>(null);
@@ -66,7 +67,12 @@ export const NotesTab: React.FC = () => {
       'Letzte 30 Tage': []
     };
 
-    notes.slice().sort((a, b) => b.date - a.date).forEach(note => {
+    notes.filter(note => {
+      if (activeFilter === 'Alle') return true;
+      if (activeFilter === 'Tagebuch') return note.tags?.includes('Tagebuch');
+      if (activeFilter === 'Idee') return note.tags?.includes('Idee');
+      return true;
+    }).slice().sort((a, b) => b.date - a.date).forEach(note => {
       if (note.date >= todayStart) {
         groups['Heute'].push(note);
       } else if (note.date >= sevenDaysAgo) {
@@ -200,6 +206,28 @@ export const NotesTab: React.FC = () => {
       {/* Scrollable Container */}
       <div className="flex-1 overflow-y-auto no-scrollbar pt-8 px-6 pb-32" style={{ WebkitOverflowScrolling: 'touch' }}>
         
+        {/* Filter Bar */}
+        <div className="flex space-x-2 mb-6 overflow-x-auto no-scrollbar">
+          <button 
+            onClick={() => setActiveFilter('Alle')}
+            className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-colors whitespace-nowrap active:scale-95 ${activeFilter === 'Alle' ? 'bg-[#1A1A1A] dark:bg-white text-white dark:text-[#121212] shadow-sm' : 'bg-[#F9F9FB] dark:bg-[#1A1A1A] text-[#6B7280] border border-gray-100 dark:border-[#2D3748]'}`}
+          >
+            Alle
+          </button>
+          <button 
+            onClick={() => setActiveFilter('Tagebuch')}
+            className={`flex items-center space-x-1.5 px-4 py-2.5 rounded-xl text-sm font-bold transition-colors whitespace-nowrap active:scale-95 ${activeFilter === 'Tagebuch' ? 'bg-[#1A1A1A] dark:bg-white text-white dark:text-[#121212] shadow-sm' : 'bg-[#F9F9FB] dark:bg-[#1A1A1A] text-[#6B7280] border border-gray-100 dark:border-[#2D3748]'}`}
+          >
+            <BookOpen size={16} /> <span>Tagebuch</span>
+          </button>
+          <button 
+            onClick={() => setActiveFilter('Idee')}
+            className={`flex items-center space-x-1.5 px-4 py-2.5 rounded-xl text-sm font-bold transition-colors whitespace-nowrap active:scale-95 ${activeFilter === 'Idee' ? 'bg-[#1A1A1A] dark:bg-white text-white dark:text-[#121212] shadow-sm' : 'bg-[#F9F9FB] dark:bg-[#1A1A1A] text-[#6B7280] border border-gray-100 dark:border-[#2D3748]'}`}
+          >
+            <Lightbulb size={16} /> <span>Ideen</span>
+          </button>
+        </div>
+
         {/* Top New Note Button */}
         <button 
           onClick={() => openNote(null)} 
@@ -297,10 +325,23 @@ export const NotesTab: React.FC = () => {
                            swipedNoteId === note.id ? '-translate-x-24' : 'translate-x-0'
                          }`}
                        >
-                         <p className="text-[#1A1A1A] dark:text-[#F3F4F6] font-medium text-base truncate mb-1.5 flex items-center justify-between">
+                         <p className="text-[#1A1A1A] dark:text-[#F3F4F6] font-medium text-base truncate mb-2 flex items-center justify-between">
                            <span className="truncate">{preview}</span>
                            {note.ai_summary && <Sparkles size={14} className="text-[#D4BA6A] ml-2 flex-shrink-0" />}
                          </p>
+                         
+                         {/* Tags row */}
+                         {(note.tags && note.tags.length > 0) && (
+                           <div className="flex space-x-2 mb-2">
+                             {note.tags.includes('Tagebuch') && (
+                               <span className="bg-blue-50 dark:bg-blue-500/10 text-blue-500 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center"><BookOpen size={10} className="mr-1"/>Tagebuch</span>
+                             )}
+                             {note.tags.includes('Idee') && (
+                               <span className="bg-yellow-50 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-500 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center"><Lightbulb size={10} className="mr-1"/>Idee</span>
+                             )}
+                           </div>
+                         )}
+
                          <p className="text-[#6B7280] text-xs font-medium">
                            {displayDate} • {formatTimeSpent(note.time_used)} Min genutzt
                          </p>

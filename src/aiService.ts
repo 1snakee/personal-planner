@@ -15,11 +15,12 @@ export async function processNoteWithAI(noteId: string, rawText: string) {
     `Note ID: ${n.id}\nDate: ${new Date(n.date).toISOString().split('T')[0]}\nContent/Summary: ${n.ai_summary || n.raw_text.substring(0, 200)}`
   ).join('\n\n');
 
-  const systemPrompt = `You are an analytical assistant organizing a user's 'Second Brain' journal.
+const systemPrompt = `You are an analytical assistant organizing a user's 'Second Brain' journal.
 Analyze the provided new note. Return a JSON object matching this exact structure:
 {
-  "ai_summary": "Eine extrem cleane, objektive 3-Satz-Zusammenfassung des Textes.",
+  "ai_summary": "Eine extrem cleane, objektive Zusammenfassung des Textes. Formatiere Ideen oder To-Dos als kurze Bulletpoints, falls vorhanden.",
   "mood_score": <number 1-10 based on emotional tone, or null if neutral>,
+  "tags": ["Tagebuch", "Idee"], // Optional array of strings. ONLY use exactly "Tagebuch" and/or "Idee". If it contains journal reflections, add "Tagebuch". If it contains an actionable thought or concept, add "Idee". Both can apply.
   "connections": [
     { "target_note_id": "<ID of related note from context>", "connection_reason": "<Short explanation, e.g. 'Beide behandeln die Business Idee'>", "strength": <number 1-5> }
   ]
@@ -57,10 +58,11 @@ Respond ONLY with valid JSON.`;
     const data = await res.json();
     const result = JSON.parse(data.choices[0].message.content);
 
-    // Update Note with Summary and Mood
+    // Update Note with Summary, Mood, and Tags
     state.updateNote(noteId, {
       ai_summary: result.ai_summary,
-      mood_score: result.mood_score
+      mood_score: result.mood_score,
+      tags: result.tags || []
     });
 
     // Add Connections

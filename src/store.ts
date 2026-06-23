@@ -8,6 +8,7 @@ export type DailyNote = {
   ai_summary: string;
   mood_score: number | null;
   time_used: number; // seconds
+  tags?: string[];
 };
 
 export type NoteConnection = {
@@ -22,6 +23,20 @@ export type GymExerciseData = {
   id: string;
   name: string;
   sets: { reps: number; weight: number }[];
+};
+
+export type GymExerciseTemplate = {
+  id: string;
+  name: string;
+  reps: string;
+  cue?: string;
+  hasWeight: boolean;
+};
+
+export type RoutineSplit = {
+  id: string;
+  label: string;
+  exercises: GymExerciseTemplate[];
 };
 
 export type GymSession = {
@@ -64,9 +79,13 @@ type AppState = {
 
   // GYM
   gym_sessions: GymSession[];
+  gym_splits: RoutineSplit[];
   addGymSession: (session: GymSession) => void;
   updateGymSession: (id: string, updates: Partial<GymSession>) => void;
   deleteGymSession: (id: string) => void;
+  addGymSplit: (split: RoutineSplit) => void;
+  updateGymSplit: (id: string, updates: Partial<RoutineSplit>) => void;
+  deleteGymSplit: (id: string) => void;
 
   // FINANCE
   finance_months: FinanceBudgetMonth[];
@@ -89,6 +108,41 @@ export const useStore = create<AppState>()(
       daily_notes: [],
       note_connections: [],
       gym_sessions: [],
+      gym_splits: [
+        {
+          id: 'brust_arme',
+          label: 'Brust / Arme',
+          exercises: [
+            { id: '1', name: 'Brustpresse', reps: '8–12 Reps', cue: 'Sitz: Griffe Höhe obere Brust • Handgelenke starr', hasWeight: true },
+            { id: '2', name: 'Butterfly', reps: '12–15 Reps', cue: 'Brust maximal quetschen', hasWeight: true },
+            { id: '3', name: 'Seitheben', reps: '15 Reps', cue: 'Schlüsselübung Schulterbreite', hasWeight: true },
+            { id: '4', name: 'Hammer Curls', reps: '8–12 Reps', cue: 'Baut Arm-Dicke von vorne', hasWeight: true },
+            { id: '5', name: 'Kabel Curls', reps: '12–15 Reps', cue: 'Ellbogen fixieren', hasWeight: true },
+          ]
+        },
+        {
+          id: 'bauch_beine',
+          label: 'Bauch / Beine',
+          exercises: [
+            { id: '6', name: 'Cable Crunches', reps: '15–20 Reps', cue: 'Rücken rund, aus dem Bauch', hasWeight: true },
+            { id: '7', name: 'Beinheben', reps: 'Versagen', cue: 'Fokus unterer Bauch', hasWeight: false },
+            { id: '8', name: 'Beinpresse', reps: '10 schwer', cue: 'Ganzkörper-Stimulus', hasWeight: true },
+            { id: '9', name: 'Beinstrecker', reps: '15 Reps', cue: 'Quadrizeps-Definition', hasWeight: true },
+            { id: '10', name: 'Wadenheben', reps: '20 Reps', cue: '', hasWeight: true },
+          ]
+        },
+        {
+          id: 'ruecken_trizeps',
+          label: 'Rücken / Trizeps',
+          exercises: [
+            { id: '11', name: 'Latzug (breit)', reps: '10–12 Reps', cue: 'Zug zur obere Brust', hasWeight: true },
+            { id: '12', name: 'Kabelrudern (eng)', reps: '10–12 Reps', cue: 'Rückendicke', hasWeight: true },
+            { id: '13', name: 'Face Pulls', reps: '15 Reps', cue: 'Zug zur Stirn', hasWeight: true },
+            { id: '14', name: 'Reverse Butterfly', reps: '12–15 Reps', cue: 'Brust ans Polster pressen', hasWeight: true },
+            { id: '15', name: 'Trizepsdrücken', reps: '12–15 Reps', cue: '', hasWeight: true },
+          ]
+        }
+      ],
       finance_months: [],
       savings_goals: [],
       hourly_wage: 15,
@@ -116,6 +170,13 @@ export const useStore = create<AppState>()(
       })),
       deleteGymSession: (id) => set((state) => ({
         gym_sessions: state.gym_sessions.filter(s => s.id !== id)
+      })),
+      addGymSplit: (split) => set((state) => ({ gym_splits: [...state.gym_splits, split] })),
+      updateGymSplit: (id, updates) => set((state) => ({
+        gym_splits: state.gym_splits.map(s => s.id === id ? { ...s, ...updates } : s)
+      })),
+      deleteGymSplit: (id) => set((state) => ({
+        gym_splits: state.gym_splits.filter(s => s.id !== id)
       })),
 
       // ACTIONS: FINANCE

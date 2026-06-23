@@ -1,66 +1,31 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Calendar, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import { Camera, Calendar, ChevronLeft, ChevronRight, Trash2, Settings, Plus, X, Image as ImageIcon, ChevronDown } from 'lucide-react';
 import { useStore } from '../store';
-import type { GymSession } from '../store';
+import type { GymSession, RoutineSplit, GymExerciseTemplate } from '../store';
 
-type Exercise = {
-  name: string;
-  sets: number;
-  reps: string;
-  cue?: string;
-  hasWeight: boolean;
-  placeholders: { weight: string; reps: string }[];
+// --- Helper for Collapsible ---
+const CollapsibleSection = ({ title, children, defaultOpen = true, bgClass = "bg-[#F9F9FB] dark:bg-[#1A1A1A]/30", icon: Icon }: { title: string, children: React.ReactNode, defaultOpen?: boolean, bgClass?: string, icon?: any }) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  return (
+    <div className={`border-b border-gray-100 dark:border-[#2D3748] ${bgClass}`}>
+      <button 
+        onClick={() => setIsOpen(!isOpen)} 
+        className="w-full flex items-center justify-between p-6 active:bg-gray-50 dark:active:bg-[#2D3748]/50 transition-colors"
+      >
+        <div className="flex items-center space-x-3">
+          {Icon && <Icon size={20} className="text-[#6B7280]" />}
+          <h2 className="text-lg font-bold text-[#1A1A1A] dark:text-[#F3F4F6]">{title}</h2>
+        </div>
+        <ChevronDown size={20} className={`text-[#1A1A1A] dark:text-gray-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+      <div className={`overflow-hidden transition-all duration-500 ease-in-out ${isOpen ? 'max-h-[5000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+        <div className="px-6 pb-6 pt-0">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
 };
-
-type RoutineSplit = {
-  id: string;
-  label: string;
-  exercises: Exercise[];
-};
-
-const SPLITS: RoutineSplit[] = [
-  {
-    id: 'brust_arme',
-    label: 'Brust / Arme',
-    exercises: [
-      { name: 'Brustpresse', sets: 4, reps: '8–12 Reps', cue: 'Sitz: Griffe Höhe obere Brust • Handgelenke starr', hasWeight: true, placeholders: Array(4).fill({ weight: '18', reps: '8' }) },
-      { name: 'Butterfly', sets: 3, reps: '12–15 Reps', cue: 'Brust maximal quetschen', hasWeight: true, placeholders: Array(3).fill({ weight: '18', reps: '5' }) },
-      { name: 'Seitheben', sets: 4, reps: '15 Reps', cue: 'Schlüsselübung Schulterbreite', hasWeight: true, placeholders: Array(4).fill({ weight: '4', reps: '8' }) },
-      { name: 'Hammer Curls', sets: 4, reps: '8–12 Reps', cue: 'Baut Arm-Dicke von vorne', hasWeight: true, placeholders: Array(4).fill({ weight: '6', reps: '6' }) },
-      { name: 'Kabel Curls', sets: 3, reps: '12–15 Reps', cue: 'Ellbogen fixieren', hasWeight: true, placeholders: Array(3).fill({ weight: '6', reps: '5' }) },
-    ]
-  },
-  {
-    id: 'bauch_beine',
-    label: 'Bauch / Beine',
-    exercises: [
-      { name: 'Cable Crunches', sets: 4, reps: '15–20 Reps', cue: 'Rücken rund, aus dem Bauch', hasWeight: true, placeholders: Array(4).fill({ weight: '', reps: '' }) },
-      { name: 'Beinheben', sets: 4, reps: 'Versagen', cue: 'Fokus unterer Bauch', hasWeight: false, placeholders: Array(4).fill({ weight: '', reps: '' }) },
-      { name: 'Beinpresse', sets: 4, reps: '10 schwer', cue: 'Ganzkörper-Stimulus', hasWeight: true, placeholders: Array(4).fill({ weight: '', reps: '' }) },
-      { name: 'Beinstrecker', sets: 3, reps: '15 Reps', cue: 'Quadrizeps-Definition', hasWeight: true, placeholders: Array(3).fill({ weight: '', reps: '' }) },
-      { name: 'Wadenheben', sets: 4, reps: '20 Reps', cue: '', hasWeight: true, placeholders: Array(4).fill({ weight: '', reps: '' }) },
-    ]
-  },
-  {
-    id: 'ruecken_trizeps',
-    label: 'Rücken / Trizeps',
-    exercises: [
-      { name: 'Latzug (breit)', sets: 4, reps: '10–12 Reps', cue: 'Zug zur oberen Brust', hasWeight: true, placeholders: [
-        { weight: '32', reps: '15' }, { weight: '39', reps: '8' }, { weight: '36.6', reps: '7' }, { weight: '34.3', reps: '9' }
-      ]},
-      { name: 'Kabelrudern (eng)', sets: 3, reps: '10–12 Reps', cue: 'Rückendicke', hasWeight: true, placeholders: [
-        { weight: '25', reps: '17' }, { weight: '32', reps: '9' }, { weight: '32', reps: '8' }
-      ]},
-      { name: 'Face Pulls', sets: 3, reps: '15 Reps', cue: 'Zug zur Stirn', hasWeight: true, placeholders: Array(3).fill({ weight: '', reps: '' }) },
-      { name: 'Reverse Butterfly', sets: 3, reps: '12–15 Reps', cue: 'Brust ans Polster pressen, mit Handkanten drücken', hasWeight: true, placeholders: [
-        { weight: '18', reps: '10' }, { weight: '9', reps: '16' }, { weight: '', reps: '' }
-      ]},
-      { name: 'Trizepsdrücken', sets: 3, reps: '12–15 Reps', cue: '', hasWeight: true, placeholders: [
-        { weight: '14', reps: '17' }, { weight: '16.3', reps: '15' }, { weight: '16.3', reps: '12' }
-      ]},
-    ]
-  }
-];
 
 type DailyState = {
   splitId: string;
@@ -71,8 +36,13 @@ type DailyState = {
 
 export const GymTab: React.FC = () => {
   const gymSessions = useStore(state => state.gym_sessions);
+  const gymSplits = useStore(state => state.gym_splits);
+  const updateGymSplit = useStore(state => state.updateGymSplit);
+  const addGymSplit = useStore(state => state.addGymSplit);
+  const deleteGymSplit = useStore(state => state.deleteGymSplit);
 
-  // Initialize to today's local date
+  const defaultSplitId = gymSplits[0]?.id || '';
+
   const [currentDate, setCurrentDate] = useState(() => {
     const today = new Date();
     const offset = today.getTimezoneOffset() * 60000;
@@ -89,11 +59,14 @@ export const GymTab: React.FC = () => {
   const [trackerState, setTrackerState] = useState<{ [date: string]: DailyState }>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Calendar Logic
+  // --- Settings Modal State ---
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [activeSettingsSplitId, setActiveSettingsSplitId] = useState<string | null>(defaultSplitId);
+
   const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
   const getFirstDayOfMonth = (year: number, month: number) => {
     let day = new Date(year, month, 1).getDay();
-    return day === 0 ? 6 : day - 1; // Make Monday = 0
+    return day === 0 ? 6 : day - 1;
   };
 
   const handlePrevMonth = () => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1));
@@ -128,9 +101,8 @@ export const GymTab: React.FC = () => {
     }
   }, [isCalendarOpen, currentDate]);
 
-  // Initialize or get state for current date
   const activeState = trackerState[currentDate] || {
-    splitId: SPLITS[0].id,
+    splitId: defaultSplitId,
     bodyWeight: '',
     imagePreview: null,
     workoutData: {}
@@ -146,6 +118,10 @@ export const GymTab: React.FC = () => {
           ex.sets.forEach((set, setIdx) => {
             workoutData[exIdx][setIdx] = { weight: set.weight ? set.weight.toString() : '', reps: set.reps ? set.reps.toString() : '' };
           });
+          // Ensure at least 1 set exists if the exercise was logged but empty
+          if (Object.keys(workoutData[exIdx]).length === 0) {
+            workoutData[exIdx][0] = { weight: '', reps: '' };
+          }
         });
 
         setTrackerState(prev => ({
@@ -157,20 +133,38 @@ export const GymTab: React.FC = () => {
             workoutData
           }
         }));
+      } else {
+        // Initialize fresh day with 1 set per exercise of current split
+        const split = gymSplits.find(s => s.id === defaultSplitId);
+        const workoutData: any = {};
+        if (split) {
+          split.exercises.forEach((ex, exIdx) => {
+            workoutData[exIdx] = { 0: { weight: '', reps: '' } };
+          });
+        }
+        setTrackerState(prev => ({
+          ...prev,
+          [currentDate]: {
+            splitId: defaultSplitId,
+            bodyWeight: '',
+            imagePreview: null,
+            workoutData
+          }
+        }));
       }
     }
-  }, [currentDate, gymSessions, trackerState]);
+  }, [currentDate, gymSessions, gymSplits, defaultSplitId, trackerState]);
 
   const updateActiveState = (updates: Partial<DailyState>) => {
     setTrackerState(prev => {
       const stateForDate = {
-        ...(prev[currentDate] || { splitId: SPLITS[0].id, bodyWeight: '', imagePreview: null, workoutData: {} }),
+        ...(prev[currentDate] || { splitId: defaultSplitId, bodyWeight: '', imagePreview: null, workoutData: {} }),
         ...updates
       };
       
       // Auto-save logic
       setTimeout(() => {
-        const split = SPLITS.find(s => s.id === stateForDate.splitId);
+        const split = gymSplits.find(s => s.id === stateForDate.splitId);
         if (split) {
           const sessionToSave: GymSession = {
             id: currentDate,
@@ -181,12 +175,15 @@ export const GymTab: React.FC = () => {
             condition_pic_url: stateForDate.imagePreview || '',
             exercise_data: split.exercises.map((ex, exIdx) => {
               const setsData = [];
-              for (let setIdx = 0; setIdx < ex.sets; setIdx++) {
-                 const s = stateForDate.workoutData[exIdx]?.[setIdx];
+              const savedExData = stateForDate.workoutData[exIdx] || {};
+              const numSets = Math.max(1, Object.keys(savedExData).length);
+              
+              for (let setIdx = 0; setIdx < numSets; setIdx++) {
+                 const s = savedExData[setIdx];
                  setsData.push({ reps: Number(s?.reps || 0), weight: Number(s?.weight || 0) });
               }
               return {
-                id: exIdx.toString(),
+                id: ex.id || exIdx.toString(),
                 name: ex.name,
                 sets: setsData
               };
@@ -230,7 +227,37 @@ export const GymTab: React.FC = () => {
     updateActiveState({ workoutData: newWorkoutData });
   };
 
-  const currentSplit = SPLITS.find(s => s.id === activeState.splitId)!;
+  const handleAddSet = (exIdx: number) => {
+    const newWorkoutData = { ...activeState.workoutData };
+    if (!newWorkoutData[exIdx]) newWorkoutData[exIdx] = { 0: { weight: '', reps: '' } };
+    const nextSetIdx = Object.keys(newWorkoutData[exIdx]).length;
+    newWorkoutData[exIdx][nextSetIdx] = { weight: '', reps: '' };
+    updateActiveState({ workoutData: newWorkoutData });
+  };
+
+  const handleSplitChange = (newSplitId: string) => {
+    const split = gymSplits.find(s => s.id === newSplitId);
+    const workoutData: any = {};
+    if (split) {
+      split.exercises.forEach((ex, exIdx) => {
+        workoutData[exIdx] = { 0: { weight: '', reps: '' } };
+      });
+    }
+    updateActiveState({ splitId: newSplitId, workoutData });
+  };
+
+  const currentSplit = gymSplits.find(s => s.id === activeState.splitId) || gymSplits[0];
+
+  // --- Image Library Grouping ---
+  const imagesByMonth = gymSessions
+    .filter(s => s.condition_pic_url)
+    .reduce((acc, s) => {
+      const dateObj = new Date(s.date);
+      const monthStr = dateObj.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+      if (!acc[monthStr]) acc[monthStr] = [];
+      acc[monthStr].push(s);
+      return acc;
+    }, {} as Record<string, GymSession[]>);
 
   return (
     <div className="flex flex-col h-full bg-white dark:bg-[#121212] overflow-hidden">
@@ -240,7 +267,6 @@ export const GymTab: React.FC = () => {
         
         {/* 1. Daily Biometric & Date Header */}
         <div className="px-6 pt-8 pb-6 border-b border-gray-100 dark:border-[#2D3748] bg-white dark:bg-[#121212]">
-          {/* Custom Date Picker Button */}
           <div className="relative mb-6">
             <label className="text-xs font-semibold tracking-wider text-gray-500 dark:text-gray-400 uppercase mb-1.5 block">Workout Date</label>
             <button 
@@ -263,7 +289,6 @@ export const GymTab: React.FC = () => {
           <h2 className="text-xl font-bold tracking-tight text-[#1A1A1A] dark:text-[#F3F4F6] mb-4">Daily Biometrics</h2>
           <div className="flex items-start space-x-4">
             
-            {/* Camera Trigger */}
             <div className="flex flex-col items-center space-y-2">
               <button 
                 onClick={() => fileInputRef.current?.click()}
@@ -297,7 +322,6 @@ export const GymTab: React.FC = () => {
               />
             </div>
 
-            {/* Weight Input */}
             <div className="flex-1 space-y-2">
               <label className="text-sm font-semibold text-[#1A1A1A] dark:text-[#F3F4F6] block">Körpergewicht (kg)</label>
               <input 
@@ -313,92 +337,287 @@ export const GymTab: React.FC = () => {
           </div>
         </div>
 
-        {/* 2. Dynamic Workout Split Selector (Segment Control) */}
+        {/* 2. Dynamic Workout Split Selector */}
         <div className="sticky top-0 z-40 bg-white dark:bg-[#121212] pt-4 pb-4 border-b border-gray-100 dark:border-[#2D3748]">
-          <div className="px-6 flex space-x-2 overflow-x-auto no-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
-            {SPLITS.map(split => (
-              <button
-                key={split.id}
-                onClick={() => updateActiveState({ splitId: split.id })}
-                className={`whitespace-nowrap px-5 py-2.5 rounded-xl font-semibold text-sm transition-none flex-shrink-0 ${
-                  activeState.splitId === split.id 
-                    ? 'bg-[#1A1A1A] dark:bg-white text-white dark:text-[#121212]' 
-                    : 'bg-[#F9F9FB] dark:bg-[#1A1A1A] text-[#6B7280] border border-gray-200 dark:border-[#2D3748]'
-                }`}
-                style={{ minHeight: '44px' }}
-              >
-                {split.label}
-              </button>
-            ))}
+          <div className="px-6 flex space-x-2 items-center">
+            <div className="flex-1 flex space-x-2 overflow-x-auto no-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
+              {gymSplits.map(split => (
+                <button
+                  key={split.id}
+                  onClick={() => handleSplitChange(split.id)}
+                  className={`whitespace-nowrap px-5 py-2.5 rounded-xl font-semibold text-sm transition-none flex-shrink-0 ${
+                    activeState.splitId === split.id 
+                      ? 'bg-[#1A1A1A] dark:bg-white text-white dark:text-[#121212]' 
+                      : 'bg-[#F9F9FB] dark:bg-[#1A1A1A] text-[#6B7280] border border-gray-200 dark:border-[#2D3748]'
+                  }`}
+                  style={{ minHeight: '44px' }}
+                >
+                  {split.label}
+                </button>
+              ))}
+            </div>
+            <button 
+              onClick={() => setIsSettingsOpen(true)}
+              className="w-11 h-11 flex-shrink-0 rounded-xl bg-[#F9F9FB] dark:bg-[#1A1A1A] border border-gray-200 dark:border-[#2D3748] flex items-center justify-center text-[#6B7280] hover:text-[#1A1A1A] dark:hover:text-white transition-colors active:scale-95"
+            >
+              <Settings size={20} />
+            </button>
           </div>
         </div>
 
-        {/* 3. Hardcoded Routine Correspondence */}
-        <div className="p-6 space-y-6">
-          {currentSplit.exercises.map((exercise, exIdx) => (
-            <div key={exIdx} className="bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2D3748] rounded-2xl p-5 shadow-sm">
-              <div className="mb-4">
-                <div className="flex justify-between items-start">
-                  <h3 className="text-lg font-bold text-[#1A1A1A] dark:text-[#F3F4F6]">{exercise.name}</h3>
-                  <span className="text-xs font-semibold px-2 py-1 bg-[#F9F9FB] dark:bg-[#1A1A1A] border border-gray-200 dark:border-[#2D3748] text-[#6B7280] rounded-md">
-                    {exercise.sets} Sets
-                  </span>
-                </div>
-                <p className="text-sm font-medium text-[#1A1A1A] dark:text-[#F3F4F6] mt-1">{exercise.reps}</p>
-                {exercise.cue && (
-                  <p className="text-xs text-[#6B7280] mt-1.5 leading-relaxed bg-[#F9F9FB] dark:bg-[#1A1A1A] p-2 rounded-lg inline-block">
-                    {exercise.cue}
-                  </p>
-                )}
-              </div>
+        {/* 3. Routine Routine */}
+        {currentSplit && (
+          <div className="p-6 space-y-6">
+            {currentSplit.exercises.map((exercise, exIdx) => {
+              const savedSets = activeState.workoutData[exIdx] || { 0: { weight: '', reps: '' } };
+              const setKeys = Object.keys(savedSets).map(Number);
+              const numSets = setKeys.length;
 
-              {/* Input Grid */}
-              <div className="space-y-3">
-                {/* Header Row */}
-                <div className="flex items-center space-x-3 px-2 mb-1">
-                  <span className="w-6 text-xs font-bold text-[#6B7280] text-center">Set</span>
-                  {exercise.hasWeight && <span className="flex-1 text-xs font-bold text-[#6B7280] text-center">Weight (kg)</span>}
-                  <span className="flex-1 text-xs font-bold text-[#6B7280] text-center">Reps</span>
-                </div>
-
-                {Array.from({ length: exercise.sets }).map((_, setIdx) => {
-                  const savedWeight = activeState.workoutData[exIdx]?.[setIdx]?.weight || '';
-                  const savedReps = activeState.workoutData[exIdx]?.[setIdx]?.reps || '';
-                  
-                  return (
-                    <div key={setIdx} className="flex items-center space-x-3">
-                      <span className="w-6 text-sm font-bold text-[#1A1A1A] dark:text-[#F3F4F6] text-center">{setIdx + 1}</span>
-                      
-                      {exercise.hasWeight && (
-                        <input 
-                          type="number" 
-                          inputMode="decimal"
-                          value={savedWeight}
-                          onChange={(e) => handleInputChange(exIdx, setIdx, 'weight', e.target.value)}
-                          placeholder="kg"
-                          className="flex-1 w-full bg-[#F9F9FB] dark:bg-[#1A1A1A] border border-gray-200 dark:border-[#2D3748] text-[#1A1A1A] dark:text-[#F3F4F6] text-center rounded-xl px-2 py-2 focus:outline-none focus:border-[#8FA496] transition-colors placeholder-[#A0AEC0] dark:placeholder-[#4A5568]"
-                          style={{ fontSize: '16px', minHeight: '44px' }}
-                        />
-                      )}
-                      
-                      <input 
-                        type="number" 
-                        inputMode="numeric"
-                        value={savedReps}
-                        onChange={(e) => handleInputChange(exIdx, setIdx, 'reps', e.target.value)}
-                        placeholder="reps"
-                        className="flex-1 w-full bg-[#F9F9FB] dark:bg-[#1A1A1A] border border-gray-200 dark:border-[#2D3748] text-[#1A1A1A] dark:text-[#F3F4F6] text-center rounded-xl px-2 py-2 focus:outline-none focus:border-[#8FA496] transition-colors placeholder-[#A0AEC0] dark:placeholder-[#4A5568]"
-                        style={{ fontSize: '16px', minHeight: '44px' }}
-                      />
+              return (
+                <div key={exIdx} className="bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2D3748] rounded-2xl p-5 shadow-sm">
+                  <div className="mb-4">
+                    <div className="flex justify-between items-start">
+                      <h3 className="text-lg font-bold text-[#1A1A1A] dark:text-[#F3F4F6]">{exercise.name}</h3>
+                      <span className="text-xs font-semibold px-2 py-1 bg-[#F9F9FB] dark:bg-[#1A1A1A] border border-gray-200 dark:border-[#2D3748] text-[#6B7280] rounded-md">
+                        {numSets} Set{numSets !== 1 ? 's' : ''}
+                      </span>
                     </div>
-                  );
-                })}
-              </div>
+                    <p className="text-sm font-medium text-[#1A1A1A] dark:text-[#F3F4F6] mt-1">{exercise.reps}</p>
+                    {exercise.cue && (
+                      <p className="text-xs text-[#6B7280] mt-1.5 leading-relaxed bg-[#F9F9FB] dark:bg-[#1A1A1A] p-2 rounded-lg inline-block">
+                        {exercise.cue}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-3 px-2 mb-1">
+                      <span className="w-6 text-xs font-bold text-[#6B7280] text-center">Set</span>
+                      {exercise.hasWeight && <span className="flex-1 text-xs font-bold text-[#6B7280] text-center">Weight (kg)</span>}
+                      <span className="flex-1 text-xs font-bold text-[#6B7280] text-center">Reps</span>
+                    </div>
+
+                    {setKeys.map((setIdx) => {
+                      const savedWeight = savedSets[setIdx]?.weight || '';
+                      const savedReps = savedSets[setIdx]?.reps || '';
+                      
+                      return (
+                        <div key={setIdx} className="flex items-center space-x-3">
+                          <span className="w-6 text-sm font-bold text-[#1A1A1A] dark:text-[#F3F4F6] text-center">{setIdx + 1}</span>
+                          
+                          {exercise.hasWeight && (
+                            <input 
+                              type="number" 
+                              inputMode="decimal"
+                              value={savedWeight}
+                              onChange={(e) => handleInputChange(exIdx, setIdx, 'weight', e.target.value)}
+                              placeholder="kg"
+                              className="flex-1 w-full bg-[#F9F9FB] dark:bg-[#1A1A1A] border border-gray-200 dark:border-[#2D3748] text-[#1A1A1A] dark:text-[#F3F4F6] text-center rounded-xl px-2 py-2 focus:outline-none focus:border-[#8FA496] transition-colors placeholder-[#A0AEC0] dark:placeholder-[#4A5568]"
+                              style={{ fontSize: '16px', minHeight: '44px' }}
+                            />
+                          )}
+                          
+                          <input 
+                            type="number" 
+                            inputMode="numeric"
+                            value={savedReps}
+                            onChange={(e) => handleInputChange(exIdx, setIdx, 'reps', e.target.value)}
+                            placeholder="reps"
+                            className="flex-1 w-full bg-[#F9F9FB] dark:bg-[#1A1A1A] border border-gray-200 dark:border-[#2D3748] text-[#1A1A1A] dark:text-[#F3F4F6] text-center rounded-xl px-2 py-2 focus:outline-none focus:border-[#8FA496] transition-colors placeholder-[#A0AEC0] dark:placeholder-[#4A5568]"
+                            style={{ fontSize: '16px', minHeight: '44px' }}
+                          />
+                        </div>
+                      );
+                    })}
+
+                    <button 
+                      onClick={() => handleAddSet(exIdx)}
+                      className="w-full mt-2 py-3 flex items-center justify-center space-x-2 rounded-xl border border-dashed border-gray-300 dark:border-[#4A5568] text-[#6B7280] font-medium text-sm hover:bg-[#F9F9FB] dark:hover:bg-[#1A1A1A] transition-colors active:scale-95"
+                    >
+                      <Plus size={16} />
+                      <span>Neues Set</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* 4. Image Library */}
+        <CollapsibleSection title="Condition Galerie" icon={ImageIcon} defaultOpen={false}>
+          {Object.keys(imagesByMonth).length === 0 ? (
+            <p className="text-sm text-gray-500 text-center py-4">Keine Bilder hochgeladen.</p>
+          ) : (
+            <div className="space-y-8">
+              {Object.entries(imagesByMonth).map(([month, sessions]) => (
+                <div key={month}>
+                  <h3 className="text-sm font-semibold text-[#1A1A1A] dark:text-[#F3F4F6] mb-3">{month}</h3>
+                  <div className="grid grid-cols-3 gap-2">
+                    {sessions.map(s => (
+                      <div key={s.id} className="aspect-square rounded-xl overflow-hidden relative group">
+                        <img src={s.condition_pic_url} alt={`Condition on ${s.date}`} className="w-full h-full object-cover" />
+                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                          <span className="text-[10px] font-bold text-white">
+                            {new Date(s.date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          )}
+        </CollapsibleSection>
 
       </div>
+
+      {/* Settings Modal */}
+      {isSettingsOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 animate-fade-in-up">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsSettingsOpen(false)} />
+          <div className="relative w-full max-w-md max-h-[85vh] bg-white dark:bg-[#121212] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-gray-100 dark:border-[#2D3748]">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-[#2D3748]">
+              <h2 className="text-xl font-bold text-[#1A1A1A] dark:text-[#F3F4F6]">Workouts anpassen</h2>
+              <button onClick={() => setIsSettingsOpen(false)} className="text-gray-400 hover:text-[#1A1A1A] dark:hover:text-white transition-colors active:scale-95"><X size={24} /></button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-6 space-y-8" style={{ WebkitOverflowScrolling: 'touch' }}>
+              
+              {/* Split Selector in Settings */}
+              <div className="flex space-x-2 overflow-x-auto no-scrollbar pb-2">
+                {gymSplits.map(split => (
+                  <button
+                    key={split.id}
+                    onClick={() => setActiveSettingsSplitId(split.id)}
+                    className={`whitespace-nowrap px-4 py-2 rounded-xl font-semibold text-sm transition-colors flex-shrink-0 ${
+                      activeSettingsSplitId === split.id 
+                        ? 'bg-[#1A1A1A] dark:bg-white text-white dark:text-[#121212]' 
+                        : 'bg-[#F9F9FB] dark:bg-[#1A1A1A] text-[#6B7280] border border-gray-200 dark:border-[#2D3748]'
+                    }`}
+                  >
+                    {split.label}
+                  </button>
+                ))}
+                <button
+                  onClick={() => {
+                    const newId = `split_${Date.now()}`;
+                    addGymSplit({ id: newId, label: 'Neuer Plan', exercises: [] });
+                    setActiveSettingsSplitId(newId);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-[#F9F9FB] dark:bg-[#1A1A1A] text-[#1A1A1A] dark:text-[#F3F4F6] border border-dashed border-gray-300 dark:border-[#4A5568] font-semibold text-sm flex items-center space-x-1 flex-shrink-0"
+                >
+                  <Plus size={16} /> <span>Plan</span>
+                </button>
+              </div>
+
+              {activeSettingsSplitId && (
+                <div className="space-y-6 animate-fade-in-subtle">
+                  {(() => {
+                    const activeSplit = gymSplits.find(s => s.id === activeSettingsSplitId);
+                    if (!activeSplit) return null;
+
+                    return (
+                      <>
+                        <div className="flex items-center space-x-2">
+                          <input 
+                            value={activeSplit.label} 
+                            onChange={(e) => updateGymSplit(activeSplit.id, { label: e.target.value })}
+                            className="flex-1 bg-[#F9F9FB] dark:bg-[#1A1A1A] border border-gray-200 dark:border-[#2D3748] text-[#1A1A1A] dark:text-[#F3F4F6] font-bold text-lg rounded-xl px-4 py-3 outline-none"
+                          />
+                          <button 
+                            onClick={() => {
+                              deleteGymSplit(activeSplit.id);
+                              setActiveSettingsSplitId(gymSplits[0]?.id || null);
+                            }}
+                            className="w-12 h-12 flex items-center justify-center bg-red-50 dark:bg-red-500/10 text-red-500 rounded-xl active:scale-95"
+                          >
+                            <Trash2 size={20} />
+                          </button>
+                        </div>
+
+                        <div className="space-y-4">
+                          <h3 className="text-sm font-bold text-[#1A1A1A] dark:text-[#F3F4F6] uppercase tracking-wider">Übungen</h3>
+                          {activeSplit.exercises.map((ex, idx) => (
+                            <div key={ex.id || idx} className="bg-[#F9F9FB] dark:bg-[#1A1A1A] p-4 rounded-2xl border border-gray-100 dark:border-[#2D3748] space-y-3 relative group">
+                              <button 
+                                onClick={() => {
+                                  const newEx = [...activeSplit.exercises];
+                                  newEx.splice(idx, 1);
+                                  updateGymSplit(activeSplit.id, { exercises: newEx });
+                                }}
+                                className="absolute top-4 right-4 text-gray-400 hover:text-red-500"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                              
+                              <input 
+                                value={ex.name} 
+                                onChange={(e) => {
+                                  const newEx = [...activeSplit.exercises];
+                                  newEx[idx].name = e.target.value;
+                                  updateGymSplit(activeSplit.id, { exercises: newEx });
+                                }}
+                                placeholder="Übungsname"
+                                className="w-[85%] bg-transparent text-[#1A1A1A] dark:text-[#F3F4F6] font-bold outline-none"
+                              />
+                              <div className="flex space-x-2">
+                                <input 
+                                  value={ex.reps} 
+                                  onChange={(e) => {
+                                    const newEx = [...activeSplit.exercises];
+                                    newEx[idx].reps = e.target.value;
+                                    updateGymSplit(activeSplit.id, { exercises: newEx });
+                                  }}
+                                  placeholder="Rep-Ziel (z.B. 8-12)"
+                                  className="flex-1 bg-white dark:bg-[#121212] rounded-lg px-3 py-2 text-sm border border-gray-100 dark:border-[#2D3748] outline-none"
+                                />
+                                <button
+                                  onClick={() => {
+                                    const newEx = [...activeSplit.exercises];
+                                    newEx[idx].hasWeight = !newEx[idx].hasWeight;
+                                    updateGymSplit(activeSplit.id, { exercises: newEx });
+                                  }}
+                                  className={`px-3 py-2 rounded-lg text-xs font-bold transition-colors ${ex.hasWeight ? 'bg-[#1A1A1A] dark:bg-white text-white dark:text-[#121212]' : 'bg-gray-200 dark:bg-[#2D3748] text-gray-500'}`}
+                                >
+                                  Gewicht
+                                </button>
+                              </div>
+                              <input 
+                                value={ex.cue || ''} 
+                                onChange={(e) => {
+                                  const newEx = [...activeSplit.exercises];
+                                  newEx[idx].cue = e.target.value;
+                                  updateGymSplit(activeSplit.id, { exercises: newEx });
+                                }}
+                                placeholder="Mental Cue (Optional)"
+                                className="w-full bg-white dark:bg-[#121212] rounded-lg px-3 py-2 text-sm border border-gray-100 dark:border-[#2D3748] outline-none"
+                              />
+                            </div>
+                          ))}
+
+                          <button 
+                            onClick={() => {
+                              const newEx = [...activeSplit.exercises, { id: Date.now().toString(), name: 'Neue Übung', reps: '10', hasWeight: true }];
+                              updateGymSplit(activeSplit.id, { exercises: newEx });
+                            }}
+                            className="w-full py-4 rounded-xl border border-dashed border-gray-300 dark:border-[#4A5568] text-[#1A1A1A] dark:text-[#F3F4F6] font-semibold text-sm flex items-center justify-center space-x-2 active:scale-95 transition-transform"
+                          >
+                            <Plus size={18} />
+                            <span>Übung hinzufügen</span>
+                          </button>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
+
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Custom Calendar Modal Overlay */}
       {isCalendarOpen && (

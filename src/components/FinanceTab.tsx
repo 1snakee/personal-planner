@@ -115,6 +115,9 @@ export const FinanceTab: React.FC = () => {
   const openAiApiKey = useStore(state => state.openai_api_key);
   const setOpenAiApiKey = useStore(state => state.setOpenAiApiKey);
 
+  const [tempApiKey, setTempApiKey] = useState(openAiApiKey || '');
+  const [showKeySaved, setShowKeySaved] = useState(false);
+
   const [activeMonthId, setActiveMonthId] = useState<string | null>(null);
 
   // --- MODALS STATE ---
@@ -388,14 +391,29 @@ export const FinanceTab: React.FC = () => {
               {/* API Key Input */}
               <div className="bg-white dark:bg-[#121212] p-5 rounded-2xl border border-gray-100 dark:border-[#2D3748] shadow-sm">
                 <label className="text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider mb-2 block">OpenAI API Key (Für Second Brain)</label>
-                <input 
-                  type="password" 
-                  placeholder="sk-..." 
-                  value={openAiApiKey || ''} 
-                  onChange={(e) => setOpenAiApiKey(e.target.value)} 
-                  className="w-full bg-[#F9F9FB] dark:bg-[#1A1A1A] rounded-xl px-4 py-3 text-[#1A1A1A] dark:text-[#F3F4F6] border border-gray-100 dark:border-[#2D3748] focus:border-[#8FA496] outline-none transition-colors"
-                  style={{ fontSize: '16px', minHeight: '44px' }} 
-                />
+                <div className="flex flex-col space-y-3">
+                  <input 
+                    type="password" 
+                    placeholder="sk-..." 
+                    value={tempApiKey} 
+                    onChange={(e) => {
+                      setTempApiKey(e.target.value);
+                      setShowKeySaved(false);
+                    }} 
+                    className="w-full bg-[#F9F9FB] dark:bg-[#1A1A1A] rounded-xl px-4 py-3 text-[#1A1A1A] dark:text-[#F3F4F6] border border-gray-100 dark:border-[#2D3748] focus:border-[#8FA496] outline-none transition-colors"
+                    style={{ fontSize: '16px', minHeight: '44px' }} 
+                  />
+                  <button 
+                    onClick={() => {
+                      setOpenAiApiKey(tempApiKey);
+                      setShowKeySaved(true);
+                      setTimeout(() => setShowKeySaved(false), 3000);
+                    }}
+                    className="w-full bg-[#1A1A1A] dark:bg-white text-white dark:text-[#121212] font-semibold text-sm rounded-xl py-3 active:scale-95 transition-transform flex items-center justify-center space-x-2"
+                  >
+                    <span>{showKeySaved ? 'Gespeichert ✓' : 'Speichern'}</span>
+                  </button>
+                </div>
                 <p className="text-[10px] text-gray-400 mt-2">Wird lokal gespeichert. Erforderlich für KI-Zusammenfassungen und Notiz-Verknüpfungen.</p>
               </div>
 
@@ -509,16 +527,20 @@ export const FinanceTab: React.FC = () => {
               updateActiveMonth({ fix_costs: [...activeMonth.fix_costs, { id: Date.now().toString(), name: newFcName, amount: Number(newFcAmount) }] });
               setNewFcName(''); setNewFcAmount('');
             }
-          }} className="flex space-x-2">
-            <input 
-              type="text" placeholder="Abo Name" value={newFcName} onChange={e => setNewFcName(e.target.value)} 
-              className="flex-1 bg-white dark:bg-[#121212] rounded-xl px-4 py-3 text-[#1A1A1A] dark:text-[#F3F4F6] border border-gray-200 dark:border-[#2D3748] outline-none" style={{ fontSize: '16px', minHeight: '44px' }} 
-            />
-            <input 
-              type="number" step="0.01" placeholder="€" value={newFcAmount} onChange={e => setNewFcAmount(e.target.value)} 
-              className="w-24 bg-white dark:bg-[#121212] rounded-xl px-4 py-3 text-[#1A1A1A] dark:text-[#F3F4F6] border border-gray-200 dark:border-[#2D3748] outline-none text-center" style={{ fontSize: '16px', minHeight: '44px' }} 
-            />
-            <button type="submit" className="bg-[#1A1A1A] dark:bg-white text-white dark:text-[#121212] rounded-xl px-4 flex items-center justify-center active:scale-95 transition-transform" style={{ minHeight: '44px' }}><Plus size={20} /></button>
+          }} className="flex flex-col space-y-3">
+            <div className="flex space-x-2">
+              <input 
+                type="text" placeholder="Abo Name" value={newFcName} onChange={e => setNewFcName(e.target.value)} 
+                className="flex-1 bg-white dark:bg-[#121212] rounded-xl px-4 py-3 text-[#1A1A1A] dark:text-[#F3F4F6] border border-gray-200 dark:border-[#2D3748] outline-none" style={{ fontSize: '16px', minHeight: '44px' }} 
+              />
+              <input 
+                type="number" step="0.01" placeholder="€" value={newFcAmount} onChange={e => setNewFcAmount(e.target.value)} 
+                className="w-24 bg-white dark:bg-[#121212] rounded-xl px-4 py-3 text-[#1A1A1A] dark:text-[#F3F4F6] border border-gray-200 dark:border-[#2D3748] outline-none text-center" style={{ fontSize: '16px', minHeight: '44px' }} 
+              />
+            </div>
+            <button type="submit" className="w-full bg-[#1A1A1A] dark:bg-white text-white dark:text-[#121212] rounded-xl py-3 font-semibold text-sm flex items-center justify-center active:scale-95 transition-transform" style={{ minHeight: '44px' }}>
+              <Plus size={18} className="mr-2" /> Hinzufügen
+            </button>
           </form>
         </CollapsibleSection>
 
@@ -535,17 +557,19 @@ export const FinanceTab: React.FC = () => {
               envelopes: activeMonth.envelopes.map(env => env.id === targetId ? { ...env, spent: env.spent + amt } : env)
             });
             setEnvExpenseAmount('');
-          }} className="flex space-x-2 mb-8">
-            <CustomSelect 
-              options={activeMonth.envelopes} 
-              value={envExpenseCategory || (activeMonth.envelopes[0]?.id || '')} 
-              onChange={setEnvExpenseCategory} 
-            />
-            <input 
-              type="number" step="0.01" placeholder="€ Ausgeben" value={envExpenseAmount} onChange={e => setEnvExpenseAmount(e.target.value)} 
-              className="w-28 bg-[#F9F9FB] dark:bg-[#1A1A1A] rounded-xl px-4 py-3 text-[#1A1A1A] dark:text-[#F3F4F6] border border-gray-100 dark:border-[#2D3748] outline-none text-center" style={{ fontSize: '16px', minHeight: '44px' }} 
-            />
-            <button type="submit" className="bg-[#1A1A1A] dark:bg-white text-white dark:text-[#121212] font-semibold text-sm rounded-xl px-5 active:scale-95 transition-transform" style={{ minHeight: '44px' }}>Log</button>
+          }} className="flex flex-col space-y-3 mb-8">
+            <div className="flex space-x-2">
+              <CustomSelect 
+                options={activeMonth.envelopes} 
+                value={envExpenseCategory || (activeMonth.envelopes[0]?.id || '')} 
+                onChange={setEnvExpenseCategory} 
+              />
+              <input 
+                type="number" step="0.01" placeholder="€ Ausgeben" value={envExpenseAmount} onChange={e => setEnvExpenseAmount(e.target.value)} 
+                className="w-28 bg-[#F9F9FB] dark:bg-[#1A1A1A] rounded-xl px-4 py-3 text-[#1A1A1A] dark:text-[#F3F4F6] border border-gray-100 dark:border-[#2D3748] outline-none text-center" style={{ fontSize: '16px', minHeight: '44px' }} 
+              />
+            </div>
+            <button type="submit" className="w-full bg-[#1A1A1A] dark:bg-white text-white dark:text-[#121212] font-semibold text-sm rounded-xl py-3 active:scale-95 transition-transform" style={{ minHeight: '44px' }}>Loggen</button>
           </form>
 
           <div className="space-y-6 mb-8">
@@ -583,10 +607,14 @@ export const FinanceTab: React.FC = () => {
               setNewEnvName(''); setNewEnvAmount('');
               if (!envExpenseCategory) setEnvExpenseCategory(newEnv.id);
             }
-          }} className="flex space-x-2 pt-6 border-t border-gray-100 dark:border-[#2D3748]">
-            <input type="text" placeholder="Neue Kategorie" value={newEnvName} onChange={e => setNewEnvName(e.target.value)} className="flex-1 bg-[#F9F9FB] dark:bg-[#1A1A1A] rounded-xl px-4 py-3 text-[#1A1A1A] dark:text-[#F3F4F6] border border-gray-100 dark:border-[#2D3748] outline-none" style={{ fontSize: '16px', minHeight: '44px' }} />
-            <input type="number" step="0.01" placeholder="Budget €" value={newEnvAmount} onChange={e => setNewEnvAmount(e.target.value)} className="w-24 bg-[#F9F9FB] dark:bg-[#1A1A1A] rounded-xl px-4 py-3 text-[#1A1A1A] dark:text-[#F3F4F6] border border-gray-100 dark:border-[#2D3748] outline-none text-center" style={{ fontSize: '16px', minHeight: '44px' }} />
-            <button type="submit" className="bg-[#F9F9FB] dark:bg-[#1A1A1A] text-[#1A1A1A] dark:text-[#F3F4F6] border border-gray-200 dark:border-[#2D3748] rounded-xl px-4 active:scale-95 transition-transform" style={{ minHeight: '44px' }}><Plus size={20} /></button>
+          }} className="flex flex-col space-y-3 pt-6 border-t border-gray-100 dark:border-[#2D3748]">
+            <div className="flex space-x-2">
+              <input type="text" placeholder="Neue Kategorie" value={newEnvName} onChange={e => setNewEnvName(e.target.value)} className="flex-1 bg-[#F9F9FB] dark:bg-[#1A1A1A] rounded-xl px-4 py-3 text-[#1A1A1A] dark:text-[#F3F4F6] border border-gray-100 dark:border-[#2D3748] outline-none" style={{ fontSize: '16px', minHeight: '44px' }} />
+              <input type="number" step="0.01" placeholder="Budget €" value={newEnvAmount} onChange={e => setNewEnvAmount(e.target.value)} className="w-24 bg-[#F9F9FB] dark:bg-[#1A1A1A] rounded-xl px-4 py-3 text-[#1A1A1A] dark:text-[#F3F4F6] border border-gray-100 dark:border-[#2D3748] outline-none text-center" style={{ fontSize: '16px', minHeight: '44px' }} />
+            </div>
+            <button type="submit" className="w-full bg-[#F9F9FB] dark:bg-[#1A1A1A] text-[#1A1A1A] dark:text-[#F3F4F6] border border-gray-200 dark:border-[#2D3748] rounded-xl py-3 font-semibold text-sm flex items-center justify-center active:scale-95 transition-transform" style={{ minHeight: '44px' }}>
+              <Plus size={18} className="mr-2" /> Hinzufügen
+            </button>
           </form>
         </CollapsibleSection>
 
@@ -650,10 +678,14 @@ export const FinanceTab: React.FC = () => {
               addSavingsGoal({ id: Date.now().toString(), name: newGoalName, target: Number(newGoalAmount), current: 0 });
               setNewGoalName(''); setNewGoalAmount('');
             }
-          }} className="flex space-x-2 pt-6 border-t border-gray-200 dark:border-[#2D3748]">
-            <input type="text" placeholder="Neues Sparziel" value={newGoalName} onChange={e => setNewGoalName(e.target.value)} className="flex-1 bg-white dark:bg-[#121212] rounded-xl px-4 py-3 text-[#1A1A1A] dark:text-[#F3F4F6] border border-gray-200 dark:border-[#2D3748] outline-none" style={{ fontSize: '16px', minHeight: '44px' }} />
-            <input type="number" step="1" placeholder="Ziel €" value={newGoalAmount} onChange={e => setNewGoalAmount(e.target.value)} className="w-24 bg-white dark:bg-[#121212] rounded-xl px-4 py-3 text-[#1A1A1A] dark:text-[#F3F4F6] border border-gray-200 dark:border-[#2D3748] outline-none text-center" style={{ fontSize: '16px', minHeight: '44px' }} />
-            <button type="submit" className="bg-[#1A1A1A] dark:bg-white text-white dark:text-[#121212] rounded-xl px-4 flex items-center justify-center active:scale-95 transition-transform" style={{ minHeight: '44px' }}><Plus size={20} /></button>
+          }} className="flex flex-col space-y-3 pt-6 border-t border-gray-200 dark:border-[#2D3748]">
+            <div className="flex space-x-2">
+              <input type="text" placeholder="Neues Sparziel" value={newGoalName} onChange={e => setNewGoalName(e.target.value)} className="flex-1 bg-white dark:bg-[#121212] rounded-xl px-4 py-3 text-[#1A1A1A] dark:text-[#F3F4F6] border border-gray-200 dark:border-[#2D3748] outline-none" style={{ fontSize: '16px', minHeight: '44px' }} />
+              <input type="number" step="1" placeholder="Ziel €" value={newGoalAmount} onChange={e => setNewGoalAmount(e.target.value)} className="w-24 bg-white dark:bg-[#121212] rounded-xl px-4 py-3 text-[#1A1A1A] dark:text-[#F3F4F6] border border-gray-200 dark:border-[#2D3748] outline-none text-center" style={{ fontSize: '16px', minHeight: '44px' }} />
+            </div>
+            <button type="submit" className="w-full bg-[#1A1A1A] dark:bg-white text-white dark:text-[#121212] rounded-xl py-3 font-semibold text-sm flex items-center justify-center active:scale-95 transition-transform" style={{ minHeight: '44px' }}>
+              <Plus size={18} className="mr-2" /> Hinzufügen
+            </button>
           </form>
         </CollapsibleSection>
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Sparkles, Activity, TrendingUp, Target, X } from 'lucide-react';
+import { Sparkles, Activity, TrendingUp, Target, X, ZoomIn, ZoomOut, Maximize2, Minimize2, RefreshCw } from 'lucide-react';
+import { usePanZoom } from '../hooks/usePanZoom';
 import { useStore } from '../store';
 import type { DailyNote } from '../store';
 
@@ -26,6 +27,8 @@ export const InsightsTab: React.FC = () => {
   const [nodes, setNodes] = useState<GraphNode[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const panZoom = usePanZoom();
 
   useEffect(() => {
     if (notes.length === 0) return;
@@ -127,53 +130,79 @@ export const InsightsTab: React.FC = () => {
       <div className="flex-1 overflow-y-auto no-scrollbar pb-32" style={{ WebkitOverflowScrolling: 'touch' }}>
         
         {/* SVG Network Cloud */}
-        <div className="relative w-full h-[400px] border-b border-gray-100 dark:border-[#2D3748] bg-[#F9F9FB] dark:bg-[#1A1A1A]/30 overflow-hidden" ref={containerRef}>
+        <div className={`relative w-full border-b border-gray-100 dark:border-[#2D3748] bg-[#F9F9FB] dark:bg-[#1A1A1A]/30 overflow-hidden ${isFullscreen ? 'fixed inset-0 z-[100] h-[100dvh]' : 'h-[400px]'}`} ref={containerRef}>
+          
+          {/* Floating Graph Controls */}
+          <div className="absolute top-4 right-4 z-40 flex flex-col space-y-2">
+            <button onClick={() => setIsFullscreen(!isFullscreen)} className="w-10 h-10 rounded-xl bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-[#2D3748] flex items-center justify-center text-[#6B7280] hover:text-[#1A1A1A] dark:hover:text-white shadow-sm active:scale-95 transition-all">
+              {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+            </button>
+            <div className="flex flex-col rounded-xl overflow-hidden border border-gray-200 dark:border-[#2D3748] shadow-sm">
+              <button onClick={panZoom.actions.zoomIn} className="w-10 h-10 bg-white dark:bg-[#1A1A1A] flex items-center justify-center text-[#6B7280] hover:text-[#1A1A1A] dark:hover:text-white border-b border-gray-200 dark:border-[#2D3748] active:bg-gray-100 dark:active:bg-[#2D3748] transition-colors">
+                <ZoomIn size={18} />
+              </button>
+              <button onClick={panZoom.actions.zoomOut} className="w-10 h-10 bg-white dark:bg-[#1A1A1A] flex items-center justify-center text-[#6B7280] hover:text-[#1A1A1A] dark:hover:text-white border-b border-gray-200 dark:border-[#2D3748] active:bg-gray-100 dark:active:bg-[#2D3748] transition-colors">
+                <ZoomOut size={18} />
+              </button>
+              <button onClick={panZoom.actions.resetView} className="w-10 h-10 bg-white dark:bg-[#1A1A1A] flex items-center justify-center text-[#6B7280] hover:text-[#1A1A1A] dark:hover:text-white active:bg-gray-100 dark:active:bg-[#2D3748] transition-colors">
+                <RefreshCw size={16} />
+              </button>
+            </div>
+          </div>
+
           {nodes.length === 0 ? (
             <div className="absolute inset-0 flex items-center justify-center text-sm text-[#6B7280] font-medium p-8 text-center">
               Noch nicht genug Notizen für das Netzwerk vorhanden. Lade API-Key hoch und erstelle Notizen.
             </div>
           ) : (
-            <svg className="w-full h-full" viewBox={`0 0 ${G_WIDTH} ${G_HEIGHT}`} preserveAspectRatio="xMidYMid meet">
-              {/* Edges */}
-              {connections.filter(c => nodes.some(n=>n.id===c.source_note_id) && nodes.some(n=>n.id===c.target_note_id)).map(c => {
-                const s = nodes.find(n => n.id === c.source_note_id)!;
-                const t = nodes.find(n => n.id === c.target_note_id)!;
-                const isActive = selectedNodeId === null || c.source_note_id === selectedNodeId || c.target_note_id === selectedNodeId;
-                
-                return (
-                  <path 
-                    key={c.id} 
-                    d={`M ${s.x} ${s.y} Q ${(s.x + t.x) / 2} ${(s.y + t.y) / 2 + 50} ${t.x} ${t.y}`} 
-                    fill="none" 
-                    stroke={isActive ? (selectedNodeId ? '#1A1A1A' : '#D1D5DB') : 'transparent'} 
-                    strokeWidth={isActive ? (selectedNodeId ? 3 : 1) : 0} 
-                    className="transition-all duration-500 ease-out dark:stroke-[#4A5568]"
-                  />
-                );
-              })}
-
-              {/* Nodes */}
-              {nodes.map(n => {
-                const active = isNodeActive(n.id);
-                const isSelected = selectedNodeId === n.id;
-                return (
-                  <g key={n.id} 
-                     className="transition-all duration-500 ease-out cursor-pointer"
-                     style={{ opacity: active ? 1 : 0.2 }}
-                     onClick={(e) => {
-                       e.stopPropagation();
-                       setSelectedNodeId(isSelected ? null : n.id);
-                     }}>
-                    <circle 
-                      cx={n.x} cy={n.y} r={isSelected ? 16 : 10} 
-                      fill={n.note.ai_summary ? '#1A1A1A' : '#ffffff'} 
-                      stroke={isSelected ? '#D4BA6A' : '#1A1A1A'} 
-                      strokeWidth={isSelected ? 4 : 2} 
-                      className="dark:stroke-gray-300 dark:fill-[#2D3748]"
+            <svg 
+              className="w-full h-full cursor-grab active:cursor-grabbing touch-none" 
+              viewBox={`0 0 ${G_WIDTH} ${G_HEIGHT}`} 
+              preserveAspectRatio="xMidYMid meet"
+              {...panZoom.handlers}
+            >
+              <g style={{ transform: `translate(${panZoom.transform.x}px, ${panZoom.transform.y}px) scale(${panZoom.transform.scale})`, transformOrigin: '0 0' }}>
+                {/* Edges */}
+                {connections.filter(c => nodes.some(n=>n.id===c.source_note_id) && nodes.some(n=>n.id===c.target_note_id)).map(c => {
+                  const s = nodes.find(n => n.id === c.source_note_id)!;
+                  const t = nodes.find(n => n.id === c.target_note_id)!;
+                  const isActive = selectedNodeId === null || c.source_note_id === selectedNodeId || c.target_note_id === selectedNodeId;
+                  
+                  return (
+                    <path 
+                      key={c.id} 
+                      d={`M ${s.x} ${s.y} Q ${(s.x + t.x) / 2} ${(s.y + t.y) / 2 + 50} ${t.x} ${t.y}`} 
+                      fill="none" 
+                      stroke={isActive ? (selectedNodeId ? '#1A1A1A' : '#D1D5DB') : 'transparent'} 
+                      strokeWidth={isActive ? (selectedNodeId ? 3 : 1) : 0} 
+                      className="transition-all duration-500 ease-out dark:stroke-[#4A5568]"
                     />
-                  </g>
-                );
-              })}
+                  );
+                })}
+
+                {/* Nodes */}
+                {nodes.map(n => {
+                  const active = isNodeActive(n.id);
+                  const isSelected = selectedNodeId === n.id;
+                  return (
+                    <g key={n.id} 
+                       className="transition-all duration-500 ease-out cursor-pointer"
+                       style={{ opacity: active ? 1 : 0.2 }}
+                       onClick={(e) => {
+                         e.stopPropagation();
+                         setSelectedNodeId(isSelected ? null : n.id);
+                       }}>
+                      <circle 
+                        cx={n.x} cy={n.y} r={isSelected ? 16 : 10} 
+                        fill={n.note.ai_summary ? '#1A1A1A' : '#ffffff'} 
+                        stroke={isSelected ? '#D4BA6A' : '#1A1A1A'} 
+                        strokeWidth={isSelected ? 4 : 2} 
+                        className="dark:stroke-gray-300 dark:fill-[#2D3748]"
+                      />
+                    </g>
+                  );
+                })}
+              </g>
             </svg>
           )}
 
@@ -184,7 +213,7 @@ export const InsightsTab: React.FC = () => {
 
           {/* Quick Card Popover */}
           {selectedNode && (
-            <div className="absolute top-6 left-6 right-6 p-5 bg-white dark:bg-[#121212] rounded-2xl shadow-lg border border-gray-100 dark:border-[#2D3748] z-30 animate-fade-in-up pointer-events-auto">
+            <div className="absolute top-6 left-6 right-20 p-5 bg-white dark:bg-[#121212] rounded-2xl shadow-lg border border-gray-100 dark:border-[#2D3748] z-30 animate-fade-in-up pointer-events-auto">
               <div className="flex justify-between items-start mb-2">
                 <div className="flex items-center space-x-2">
                   <Sparkles size={16} className="text-[#D4BA6A]" />
@@ -225,7 +254,7 @@ export const InsightsTab: React.FC = () => {
                 </p>
               ) : (
                 <p className="text-sm text-[#6B7280] font-medium leading-relaxed">
-                  Dein durchschnittlicher Mood-Score ist an Tagen mit Training <strong className="text-[#1A1A1A] dark:text-white">+1.4 Punkte</strong> höher. Das Gym scheint dein mentaler Katalysator zu sein. <em className="text-xs block mt-1 opacity-60">(KI-Prognose, benötigt mehr Daten)</em>
+                  Sammle mehr Notizen mit Mood-Scores und Gym-Sessions, um deinen mentalen Katalysator zu finden. <em className="text-xs block mt-1 opacity-60">(KI-Analyse benötigt mehr Daten)</em>
                 </p>
               )}
             </div>
@@ -245,7 +274,7 @@ export const InsightsTab: React.FC = () => {
                 </p>
               ) : (
                 <p className="text-sm text-[#6B7280] font-medium leading-relaxed">
-                  Monate mit hoher Gym-Konsistenz weisen bei dir typischerweise eine <strong className="text-[#1A1A1A] dark:text-white">20% höhere Sparrate</strong> auf. Physische Disziplin überträgt sich direkt auf dein Portemonnaie. <em className="text-xs block mt-1 opacity-60">(KI-Prognose, benötigt mehr Daten)</em>
+                  Protokolliere Gym-Sessions und erstelle Umschlag-Budgets, um zu sehen, wie physische Disziplin dein Portemonnaie beeinflusst. <em className="text-xs block mt-1 opacity-60">(KI-Analyse benötigt mehr Daten)</em>
                 </p>
               )}
             </div>
