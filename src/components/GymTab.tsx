@@ -563,28 +563,16 @@ export const GymTab: React.FC = () => {
                                 placeholder="Übungsname"
                                 className="w-[85%] bg-transparent text-[#1A1A1A] dark:text-[#F3F4F6] font-bold outline-none"
                               />
-                              <div className="flex space-x-2">
-                                <input 
-                                  value={ex.reps} 
-                                  onChange={(e) => {
-                                    const newEx = [...activeSplit.exercises];
-                                    newEx[idx].reps = e.target.value;
-                                    updateGymSplit(activeSplit.id, { exercises: newEx });
-                                  }}
-                                  placeholder="Rep-Ziel (z.B. 8-12)"
-                                  className="flex-1 bg-white dark:bg-[#121212] rounded-lg px-3 py-2 text-sm border border-gray-100 dark:border-[#2D3748] outline-none"
-                                />
-                                <button
-                                  onClick={() => {
-                                    const newEx = [...activeSplit.exercises];
-                                    newEx[idx].hasWeight = !newEx[idx].hasWeight;
-                                    updateGymSplit(activeSplit.id, { exercises: newEx });
-                                  }}
-                                  className={`px-3 py-2 rounded-lg text-xs font-bold transition-colors flex-shrink-0 ${ex.hasWeight ? 'bg-[#1A1A1A] dark:bg-white text-white dark:text-[#121212]' : 'bg-gray-200 dark:bg-[#2D3748] text-gray-500'}`}
-                                >
-                                  Gewicht
-                                </button>
-                              </div>
+                              <input 
+                                value={ex.reps} 
+                                onChange={(e) => {
+                                  const newEx = [...activeSplit.exercises];
+                                  newEx[idx].reps = e.target.value;
+                                  updateGymSplit(activeSplit.id, { exercises: newEx });
+                                }}
+                                placeholder="Rep-Ziel (z.B. 8-12)"
+                                className="w-full bg-white dark:bg-[#121212] rounded-lg px-3 py-2 text-sm border border-gray-100 dark:border-[#2D3748] outline-none"
+                              />
                               <input 
                                 value={ex.cue || ''} 
                                 onChange={(e) => {
@@ -595,6 +583,16 @@ export const GymTab: React.FC = () => {
                                 placeholder="Mental Cue (Optional)"
                                 className="w-full bg-white dark:bg-[#121212] rounded-lg px-3 py-2 text-sm border border-gray-100 dark:border-[#2D3748] outline-none"
                               />
+                              <button
+                                onClick={() => {
+                                  const newEx = [...activeSplit.exercises];
+                                  newEx[idx].hasWeight = !newEx[idx].hasWeight;
+                                  updateGymSplit(activeSplit.id, { exercises: newEx });
+                                }}
+                                className={`w-full py-2.5 rounded-lg text-xs font-bold transition-colors ${ex.hasWeight ? 'bg-[#1A1A1A] dark:bg-white text-white dark:text-[#121212]' : 'bg-gray-200 dark:bg-[#2D3748] text-gray-500'}`}
+                              >
+                                {ex.hasWeight ? 'Mit Gewicht' : 'Ohne Gewicht'}
+                              </button>
                             </div>
                           ))}
 
