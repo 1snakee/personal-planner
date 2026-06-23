@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Camera, Calendar, ChevronLeft, ChevronRight, Trash2, Settings, Plus, X, Image as ImageIcon, ChevronDown } from 'lucide-react';
 import { useStore } from '../store';
-import type { GymSession, RoutineSplit, GymExerciseTemplate } from '../store';
+import type { GymSession } from '../store';
 
 // --- Helper for Collapsible ---
 const CollapsibleSection = ({ title, children, defaultOpen = true, bgClass = "bg-[#F9F9FB] dark:bg-[#1A1A1A]/30", icon: Icon }: { title: string, children: React.ReactNode, defaultOpen?: boolean, bgClass?: string, icon?: any }) => {
@@ -138,7 +138,7 @@ export const GymTab: React.FC = () => {
         const split = gymSplits.find(s => s.id === defaultSplitId);
         const workoutData: any = {};
         if (split) {
-          split.exercises.forEach((ex, exIdx) => {
+          split.exercises.forEach((_, exIdx) => {
             workoutData[exIdx] = { 0: { weight: '', reps: '' } };
           });
         }
@@ -239,7 +239,7 @@ export const GymTab: React.FC = () => {
     const split = gymSplits.find(s => s.id === newSplitId);
     const workoutData: any = {};
     if (split) {
-      split.exercises.forEach((ex, exIdx) => {
+      split.exercises.forEach((_, exIdx) => {
         workoutData[exIdx] = { 0: { weight: '', reps: '' } };
       });
     }
