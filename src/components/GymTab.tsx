@@ -176,7 +176,7 @@ export const GymTab: React.FC = () => {
         workout_type: newState.splitId,
         body_weight: newState.bodyWeight ? Number(newState.bodyWeight) : null,
         condition_pic_url: newState.imagePreview || '',
-        exercise_data: split.exercises.map((ex) => {
+        exercise_data: split.exercises.map((ex, exIdx) => {
           const key = ex.id || ex.name;
           const setsData = [];
           const savedExData = newState.workoutData[key] || {};
