@@ -156,53 +156,47 @@ export const GymTab: React.FC = () => {
   }, [currentDate, gymSessions, gymSplits, defaultSplitId, trackerState]);
 
   const updateActiveState = (updates: Partial<DailyState>) => {
-    setTrackerState(prev => {
-      const stateForDate = {
-        ...(prev[currentDate] || { splitId: defaultSplitId, bodyWeight: '', imagePreview: null, workoutData: {} }),
-        ...updates
-      };
-      
-      // Auto-save logic
-      setTimeout(() => {
-        const split = gymSplits.find(s => s.id === stateForDate.splitId);
-        if (split) {
-          const sessionToSave: GymSession = {
-            id: currentDate,
-            date: currentDate,
-            duration: 0,
-            workout_type: stateForDate.splitId,
-            body_weight: stateForDate.bodyWeight ? Number(stateForDate.bodyWeight) : null,
-            condition_pic_url: stateForDate.imagePreview || '',
-            exercise_data: split.exercises.map((ex, exIdx) => {
-              const setsData = [];
-              const savedExData = stateForDate.workoutData[exIdx] || {};
-              const numSets = Math.max(1, Object.keys(savedExData).length);
-              
-              for (let setIdx = 0; setIdx < numSets; setIdx++) {
-                 const s = savedExData[setIdx];
-                 setsData.push({ reps: Number(s?.reps || 0), weight: Number(s?.weight || 0) });
-              }
-              return {
-                id: ex.id || exIdx.toString(),
-                name: ex.name,
-                sets: setsData
-              };
-            })
-          };
-          const store = useStore.getState();
-          if (store.gym_sessions.some(s => s.date === currentDate)) {
-             store.updateGymSession(currentDate, sessionToSave);
-          } else {
-             store.addGymSession(sessionToSave);
-          }
-        }
-      }, 0);
+    const currentState = trackerState[currentDate] || { splitId: defaultSplitId, bodyWeight: '', imagePreview: null, workoutData: {} };
+    const newState = { ...currentState, ...updates };
 
-      return {
-        ...prev,
-        [currentDate]: stateForDate
+    setTrackerState(prev => ({
+      ...prev,
+      [currentDate]: newState
+    }));
+      
+    // Auto-save logic
+    const split = gymSplits.find(s => s.id === newState.splitId);
+    if (split) {
+      const sessionToSave: GymSession = {
+        id: currentDate,
+        date: currentDate,
+        duration: 0,
+        workout_type: newState.splitId,
+        body_weight: newState.bodyWeight ? Number(newState.bodyWeight) : null,
+        condition_pic_url: newState.imagePreview || '',
+        exercise_data: split.exercises.map((ex, exIdx) => {
+          const setsData = [];
+          const savedExData = newState.workoutData[exIdx] || {};
+          const numSets = Math.max(1, Object.keys(savedExData).length);
+          
+          for (let setIdx = 0; setIdx < numSets; setIdx++) {
+              const s = savedExData[setIdx];
+              setsData.push({ reps: Number(s?.reps || 0), weight: Number(s?.weight || 0) });
+          }
+          return {
+            id: ex.id || exIdx.toString(),
+            name: ex.name,
+            sets: setsData
+          };
+        })
       };
-    });
+      const store = useStore.getState();
+      if (store.gym_sessions.some(s => s.date === currentDate)) {
+          store.updateGymSession(currentDate, sessionToSave);
+      } else {
+          store.addGymSession(sessionToSave);
+      }
+    }
   };
 
   const handleImageCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -477,7 +471,7 @@ export const GymTab: React.FC = () => {
       {isSettingsOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 animate-fade-in-up">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsSettingsOpen(false)} />
-          <div className="relative w-full max-w-md max-h-[85vh] bg-white dark:bg-[#121212] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-gray-100 dark:border-[#2D3748]">
+          <div className="relative w-full max-w-md max-h-[75vh] mb-20 bg-white dark:bg-[#121212] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-gray-100 dark:border-[#2D3748]">
             <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-[#2D3748]">
               <h2 className="text-xl font-bold text-[#1A1A1A] dark:text-[#F3F4F6]">Workouts anpassen</h2>
               <button onClick={() => setIsSettingsOpen(false)} className="text-gray-400 hover:text-[#1A1A1A] dark:hover:text-white transition-colors active:scale-95"><X size={24} /></button>
@@ -540,7 +534,7 @@ export const GymTab: React.FC = () => {
                         <div className="space-y-4">
                           <h3 className="text-sm font-bold text-[#1A1A1A] dark:text-[#F3F4F6] uppercase tracking-wider">Übungen</h3>
                           {activeSplit.exercises.map((ex, idx) => (
-                            <div key={ex.id || idx} className="bg-[#F9F9FB] dark:bg-[#1A1A1A] p-4 rounded-2xl border border-gray-100 dark:border-[#2D3748] space-y-3 relative group">
+                            <div key={ex.id || idx} className="bg-[#F9F9FB] dark:bg-[#1A1A1A] p-4 rounded-2xl border border-gray-100 dark:border-[#2D3748] space-y-3 relative group animate-fade-in-subtle">
                               <button 
                                 onClick={() => {
                                   const newEx = [...activeSplit.exercises];
@@ -579,7 +573,7 @@ export const GymTab: React.FC = () => {
                                     newEx[idx].hasWeight = !newEx[idx].hasWeight;
                                     updateGymSplit(activeSplit.id, { exercises: newEx });
                                   }}
-                                  className={`px-3 py-2 rounded-lg text-xs font-bold transition-colors ${ex.hasWeight ? 'bg-[#1A1A1A] dark:bg-white text-white dark:text-[#121212]' : 'bg-gray-200 dark:bg-[#2D3748] text-gray-500'}`}
+                                  className={`px-3 py-2 rounded-lg text-xs font-bold transition-colors flex-shrink-0 ${ex.hasWeight ? 'bg-[#1A1A1A] dark:bg-white text-white dark:text-[#121212]' : 'bg-gray-200 dark:bg-[#2D3748] text-gray-500'}`}
                                 >
                                   Gewicht
                                 </button>
